@@ -17,9 +17,30 @@ pub fn acb_commandline(args: Vec<String>) {
                     "help" => print_help_command(),
                     "devices" => get_devices(),
                     "start-server" => launch_server(),
+                    "connect" => connect(args),
                     _ => {}
                 }
             }
+        }
+    }
+}
+
+fn connect(args: Vec<String>) {
+    match args.get(2) {
+        None => println!("Please provide a second argument"),
+        Some(arg) => {
+            let addr: SocketAddr = match arg.parse() {
+                Ok(addr) => addr,
+                Err(err) => {
+                    println!("The addr you provided is not vailid, {}", err);
+                    return;
+                }
+            };
+
+            match send_command(format!("connect:{}", addr.to_string())) {
+                Some(msg) => println!("{}", msg),
+                None => ()
+            }            
         }
     }
 }
@@ -30,7 +51,7 @@ fn get_devices() {
 }
 
 fn send_command(command: String) -> Option<String> {
-    let mut stream = connect().unwrap();
+    let mut stream = setup().unwrap();
 
     stream.write_all(command.as_bytes()).unwrap();
 
@@ -43,7 +64,7 @@ fn send_command(command: String) -> Option<String> {
     }
 }
 
-fn connect() -> Option<TcpStream> {
+fn setup() -> Option<TcpStream> {
     let addr: SocketAddr = "127.0.0.1:56565".parse().unwrap();
     match TcpStream::connect_timeout(&addr, std::time::Duration::from_secs(1)) {
         Ok(mut stream) => {

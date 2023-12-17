@@ -4,11 +4,15 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 use byteorder::{BigEndian, WriteBytesExt};
 use std::cmp::Ordering;
-use crate::server::commands::{connect, devices, start_instance};
+use crate::server::commands::{connect, devices};
 
 #[repr(u16)]
 pub enum DaemonCommands {
-    StartInstance = 0
+    StartInstance = 0,
+    CloseInstance = 1,
+    RestartInstance = 2,
+    StopInstance = 3,
+    ResumeInstance = 4,
 }
 
 pub struct DaemonCommand {
@@ -70,6 +74,7 @@ impl Server {
             let clone = Arc::clone(&device_streams);
             match stream {
                 Ok(client) => {
+
                     let handle = std::thread::spawn(move || {
                         handle_client(client, Arc::clone(&clone));
                     });
@@ -144,9 +149,55 @@ fn handle_commands(command: String, device_streams: Arc<RwLock<HashMap<SocketAdd
                 Ok(stream) => stream,
                 Err(err) => return Some(err)
             };
-            start_instance(stream, arguments);
+            let instance = *arguments.get(0).unwrap();
+            let instance: u16 = instance.parse().unwrap();
+            DaemonCommand::from(DaemonCommands::StartInstance, Some(instance), "".to_string()).send(stream);
             None
         },
+        "close-instance" => {
+            let stream = get_stream_or_first(device, device_streams);
+            let stream = match stream {
+                Ok(stream) => stream,
+                Err(err) => return Some(err)
+            };
+            let instance = *arguments.get(0).unwrap();
+            let instance: u16 = instance.parse().unwrap();
+            DaemonCommand::from(DaemonCommands::CloseInstance, Some(instance), "".to_string()).send(stream);
+            None
+        },
+        "restart-instance" => {
+            let stream = get_stream_or_first(device, device_streams);
+            let stream = match stream {
+                Ok(stream) => stream,
+                Err(err) => return Some(err)
+            };
+            let instance = *arguments.get(0).unwrap();
+            let instance: u16 = instance.parse().unwrap();
+            DaemonCommand::from(DaemonCommands::RestartInstance, Some(instance), "".to_string()).send(stream);
+            None
+        },
+        "stop-instance" => {
+            let stream = get_stream_or_first(device, device_streams);
+            let stream = match stream {
+                Ok(stream) => stream,
+                Err(err) => return Some(err)
+            };
+            let instance = *arguments.get(0).unwrap();
+            let instance: u16 = instance.parse().unwrap();
+            DaemonCommand::from(DaemonCommands::StopInstance, Some(instance), "".to_string()).send(stream);
+            None
+        },
+        "resume-instance" => {
+            let stream = get_stream_or_first(device, device_streams);
+            let stream = match stream {
+                Ok(stream) => stream,
+                Err(err) => return Some(err)
+            };
+            let instance = *arguments.get(0).unwrap();
+            let instance: u16 = instance.parse().unwrap();
+            DaemonCommand::from(DaemonCommands::ResumeInstance, Some(instance), "".to_string()).send(stream);
+            None
+        }
         _ => None
     };
 }

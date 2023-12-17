@@ -39,7 +39,7 @@ enum Commands {
         instance_id: u16
     },
     #[command(arg_required_else_help = true)]
-    PauseInstance {
+    StopInstance {
         instance_id: u16
     },
     #[command(arg_required_else_help = true)]
@@ -132,6 +132,10 @@ pub fn acb_cli() {
         Commands::Connect {daemon_server} => commands::connect(daemon_server),
         Commands::Devices => commands::devices(),
         Commands::StartInstance { instance_id} => commands::start_instance(serial, instance_id),
+        Commands::CloseInstance { instance_id} => commands::close_instance(serial, instance_id),
+        Commands::RestartInstance { instance_id} => commands::restart_instance(serial, instance_id),
+        Commands::StopInstance { instance_id} => commands::stop_instance(serial, instance_id),
+        Commands::ResumeInstance { instance_id} => commands::resume_instance(serial, instance_id),
         _ => ()
     }
 }

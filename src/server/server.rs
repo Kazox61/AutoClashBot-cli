@@ -144,92 +144,30 @@ fn handle_commands(command: String, device_streams: Arc<RwLock<HashMap<SocketAdd
         "connect" => Some(connect(device_streams, arguments)),
         "devices" => Some(devices(device_streams)),
         "start-instance" => {
-            let stream = get_stream_or_first(device, device_streams);
-            let stream = match stream {
-                Ok(stream) => stream,
-                Err(err) => return Some(err)
-            };
             let instance = *arguments.get(0).unwrap();
-            let instance: u16 = instance.parse().unwrap();
-            DaemonCommand::from(DaemonCommands::StartInstance, Some(instance), "".to_string()).send(stream);
-            None
+            reqwest::blocking::get(format!("http:/localhost:8000/instance/{}/start", instance)).unwrap();
+            Some("Success".to_string())
         },
         "close-instance" => {
-            let stream = get_stream_or_first(device, device_streams);
-            let stream = match stream {
-                Ok(stream) => stream,
-                Err(err) => return Some(err)
-            };
             let instance = *arguments.get(0).unwrap();
-            let instance: u16 = instance.parse().unwrap();
-            DaemonCommand::from(DaemonCommands::CloseInstance, Some(instance), "".to_string()).send(stream);
-            None
+            reqwest::blocking::get(format!("http:/localhost:8000/instance/{}/close", instance)).unwrap();
+            Some("Success".to_string())
         },
         "restart-instance" => {
-            let stream = get_stream_or_first(device, device_streams);
-            let stream = match stream {
-                Ok(stream) => stream,
-                Err(err) => return Some(err)
-            };
             let instance = *arguments.get(0).unwrap();
-            let instance: u16 = instance.parse().unwrap();
-            DaemonCommand::from(DaemonCommands::RestartInstance, Some(instance), "".to_string()).send(stream);
-            None
+            reqwest::blocking::get(format!("http:/localhost:8000/instance/{}/restart", instance)).unwrap();
+            Some("Success".to_string())
         },
         "stop-instance" => {
-            let stream = get_stream_or_first(device, device_streams);
-            let stream = match stream {
-                Ok(stream) => stream,
-                Err(err) => return Some(err)
-            };
             let instance = *arguments.get(0).unwrap();
-            let instance: u16 = instance.parse().unwrap();
-            DaemonCommand::from(DaemonCommands::StopInstance, Some(instance), "".to_string()).send(stream);
-            None
+            reqwest::blocking::get(format!("http:/localhost:8000/instance/{}/stop", instance)).unwrap();
+            Some("Success".to_string())
         },
         "resume-instance" => {
-            let stream = get_stream_or_first(device, device_streams);
-            let stream = match stream {
-                Ok(stream) => stream,
-                Err(err) => return Some(err)
-            };
             let instance = *arguments.get(0).unwrap();
-            let instance: u16 = instance.parse().unwrap();
-            DaemonCommand::from(DaemonCommands::ResumeInstance, Some(instance), "".to_string()).send(stream);
-            None
+            reqwest::blocking::get(format!("http:/localhost:8000/instance/{}/resume", instance)).unwrap();
+            Some("Success".to_string())
         }
         _ => None
     };
-}
-
-fn get_stream_or_first(device: Option<String>, device_streams: Arc<RwLock<HashMap<SocketAddr, Arc<Mutex<TcpStream>>>>>) -> Result<Arc<Mutex<TcpStream>>, String> {
-    return match device {
-        None => {
-            let devices = device_streams.read().unwrap();
-            match devices.len().cmp(&1) {
-                Ordering::Less => Err(String::from("No device connected")),
-                Ordering::Equal => Ok(Arc::clone(devices.values().next().unwrap())),
-                Ordering::Greater => Err(String::from("To many devices connected: Use -s to specify a device"))
-            }
-        }
-        Some(device) => {
-            let values = device.split_once(":").unwrap();
-            let ip: IpAddr = match values.0.parse() {
-                Err(_) => return Err(String::from("Invalid IP")),
-                Ok(res) => res
-            };
-
-            let port:u16 = match values.1.parse() {
-                Err(_) => return Err(String::from("Invalid Port")),
-                Ok(res) => res
-            };
-
-            let addr = SocketAddr::new(ip, port);
-
-            match device_streams.read().unwrap().get(&addr) {
-                None => Err(String::from("No device with this serial")),
-                Some(stream) => Ok(Arc::clone(&stream))
-            }
-        }
-    }
 }
